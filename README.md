@@ -65,7 +65,7 @@ Also it means that all the data passed from a parent component to its children c
 
 ### 1. Component
 
-Each component is a visible entity. You may think of it as an extension of a DOM node.  
+Each component is a visible entity. You may think of it as an extension of a DOM node. Each component exposes its root DOM element via the component.DOMNode property, so you can directly manipulate it if needed.
 A component must have a **template** — plain HTML with several helper directives.
 
 **Example template (myComponent.html):**
