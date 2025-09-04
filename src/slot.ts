@@ -121,6 +121,10 @@ export default class Slot {
 		}
 	}
 
+	getByIndex(index: number): Component | undefined {
+		return this.content[index];
+	}
+
 	get length (): number {
 		return this.content.length;
 	}
