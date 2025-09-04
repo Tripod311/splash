@@ -2,66 +2,126 @@ import type Component from "./component.js"
 
 export default class Slot {
 	private anchor: Comment;
-	private content: Component | Component[] | null = null;
+	private content: Component[] = [];
 	private mounted: boolean = false;
 
 	constructor (anchor: Comment) {
 		this.anchor = anchor;
 	}
 
-	async setContent (content: Component | Component[]) {
-		await this.clear();
+	setContent (content: Component | Component[]) {
+		this.clear();
 
-		if (Array.isArray(content)) {
-			this.content = content as Component[];
+		this.content = content as Component[];
 
-			let lastNode: ChildNode = this.anchor;
+		let lastNode: ChildNode = this.anchor;
 
+		for (const component of this.content) {
+			lastNode.after(component.DOMNode);
+			lastNode = component.DOMNode;
+		}
+
+		if (this.mounted) {
 			for (const component of this.content) {
-				lastNode.after(component.DOMNode);
-				lastNode = component.DOMNode;
-			}
-
-			if (this.mounted) {
-				for (const component of this.content) {
-					await component.mounted();
-				}
-			}
-		} else {
-			this.content = content as Component;
-			this.anchor.after(this.content.DOMNode);
-			if (this.mounted) {
-				await this.content.mounted();
+				component.mounted();
 			}
 		}
 	}
 
-	async clear () {
-		if (this.content === null) return;
-
-		if (Array.isArray(this.content)) {
-			for (let component of this.content as Component[]) {
-				await component.unmounted();
-				component.DOMNode.remove();
-			}
-		} else {
-			await (this.content as Component).unmounted();
+	clear (): Component[] {
+		for (let component of this.content as Component[]) {
+			if (this.mounted) component.unmounted();
+			component.DOMNode.remove();
 		}
 
-		this.content = null;
+		const toReturn = this.content;
+
+		this.content = [];
+
+		return toReturn;
 	}
 
-	async mount () {
+	mount () {
 		this.mounted = true;
 
-		if (this.content === null) return;
-
-		if (Array.isArray(this.content)) {
-			for (const component of this.content as Component[]) {
-				await component.mounted();
-			}
-		} else {
-			await (this.content as Component).mounted();
+		for (const component of this.content as Component[]) {
+			component.mounted();
 		}
+	}
+
+	unmount () {
+		this.clear();
+
+		this.mounted = false;
+	}
+
+	push (component: Component) {
+		this.content.push(component);
+		this.content[this.content.length - 2]!.DOMNode.after(component.DOMNode);
+		if (this.mounted) {
+			component.mounted();
+		}
+	}
+
+	pop (): Component | undefined {
+		if (this.content.length === 0) {
+			return undefined;
+		}
+
+		const toReturn = this.content.pop() as Component;
+		toReturn.unmounted();
+		toReturn.DOMNode.remove();
+		return toReturn;
+	}
+
+	unshift (component: Component) {
+		this.content.unshift(component);
+		this.content[0]!.DOMNode.before(component.DOMNode);
+		if (this.mounted) {
+			component.mounted();
+		}
+	}
+
+	shift (): Component | undefined {
+		if (this.content.length === 0) {
+			return undefined;
+		}
+
+		const toReturn = this.content.shift() as Component;
+		toReturn.unmounted();
+		toReturn.DOMNode.remove();
+		return toReturn;
+	}
+
+	insert (position: number, component: Component) {
+		this.content.splice(position, 0, component);
+		const index = this.content.indexOf(component);
+		let anchor: ChildNode;
+		if (index === 0) {
+			anchor = this.anchor;
+		} else {
+			anchor = this.content[index-1].DOMNode;
+		}
+		anchor.after(component.DOMNode);
+		if (this.mounted) {
+			component.mounted();
+		}
+	}
+
+	remove (position: number): Component | undefined {
+		const arr = this.content.splice(position, 1);
+
+		if (arr.length === 0) {
+			return undefined;
+		} else {
+			const toReturn = arr[0] as Component;
+			toReturn.unmounted();
+			toReturn.DOMNode.remove();
+			return toReturn;
+		}
+	}
+
+	get length (): number {
+		return this.content.length;
 	}
 }

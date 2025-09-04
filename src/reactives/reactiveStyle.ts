@@ -15,7 +15,7 @@ export default class ReactiveStyle extends ReactiveElement {
 	update (newValue: any, oldValue: any) {
 		if (typeof newValue !== 'object') throw new Error("ReactiveStyle::update accepts only Record<string, string> | null");
 
-		if (newValue === null) {
+		if (newValue === null || newValue === undefined) {
 			for (const propName in this.currentStyle) {
 				this.element.style.removeProperty(propName);
 				delete this.currentStyle[propName];
@@ -23,7 +23,9 @@ export default class ReactiveStyle extends ReactiveElement {
 		} else {
 			const newStyles = newValue as Record<string, string>;
 
-			for (const key in newStyles) {
+			const keySet = Object.keys(this.currentStyle).concat(Object.keys(newStyles));
+
+			for (const key of keySet) {
 				if (newStyles[key] === undefined) {
 					this.element.style.removeProperty(key);
 					delete this.currentStyle[key];

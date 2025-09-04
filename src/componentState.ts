@@ -2,26 +2,23 @@ export type StateListener = (newValue: any, oldValue: any) => void;
 
 export class ComponentState {
 	private value: Record<string, any>;
-	private listeners: Map<string, StateListener[]> = new Map();
+	private listeners: Record<string, StateListener[]> = {};
 
 	constructor (value: Record<string, any> = {}) {
 		this.value = value;
 	}
 
 	on (propName: string, listener: StateListener) {
-		if (!this.listeners.has(propName)) {
-			this.listeners.set(propName, []);
+		if (this.listeners[propName] === undefined) {
+			this.listeners[propName] = [];
 		}
 
-		this.listeners.get(propName)!.push(listener);
+		this.listeners[propName]!.push(listener);
 	}
 
 	off (propName: string, listener: StateListener) {
-		if (this.listeners.has(propName)) {
-			this.listeners.set(
-				propName,
-				this.listeners.get(propName)!.filter(l => l !== listener)
-			);
+		if (this.listeners[propName] !== undefined) {
+			this.listeners[propName] = this.listeners[propName]!.filter(l => l !== listener);
 		}
 	}
 
@@ -39,12 +36,33 @@ export class ComponentState {
 		}
 
 		for (const propName in makeCalls) {
-			if (this.listeners.has(propName)) {
-				const arr = this.listeners.get(propName) as StateListener[];
+			if (this.listeners[propName] !== undefined) {
+				const arr = this.listeners[propName] as StateListener[];
 
 				for (const l of arr) {
 					l(makeCalls[propName].newValue, makeCalls[propName].oldValue);
 				}
+			}
+		}
+	}
+
+	getProps (): Record<string, any> {
+		return this.value;
+	}
+
+	getProp (propName: string): any {
+		return this.value[propName];
+	}
+
+	setProp (propName: string, propValue: any) {
+		const oldValue = this.value[propName];
+		this.value[propName] = propValue;
+
+		if (this.listeners[propName] !== undefined) {
+			const arr = this.listeners[propName] as StateListener[];
+
+			for (const l of arr) {
+				l(propValue, oldValue);
 			}
 		}
 	}

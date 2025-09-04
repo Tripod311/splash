@@ -7,6 +7,8 @@ import ReactiveClass from "./reactives/reactiveClass.js"
 import ReactiveProp from "./reactives/reactiveProp.js"
 import Slot from "./slot.js"
 
+type EventListener = (payload: any) => void;
+
 export default class Component {
 	protected static componentName: string = "";
 	protected static template: string = "";
@@ -16,14 +18,16 @@ export default class Component {
 	protected parentElement?: HTMLElement;
 	private setupAF?: ReturnType<typeof requestAnimationFrame>;
 
-	protected refs: Map<string, HTMLElement> = new Map();
-	protected slots: Map<string, Slot> = new Map();
+	protected refs: Record<string, HTMLElement> = {};
+	protected slots: Record<string, Slot> = {};
 
-	protected textReactives: Map<string, ReactiveText> = new Map();
-	protected htmlReactives: Map<string, ReactiveHTML> = new Map();
-	protected classReactives: Map<string, ReactiveClass> = new Map();
-	protected styleReactives: Map<string, ReactiveStyle> = new Map();
-	protected propReactives: Map<string, ReactiveProp> = new Map();
+	protected textReactives: Record<string, ReactiveText> = {};
+	protected htmlReactives: Record<string, ReactiveHTML> = {};
+	protected classReactives: Record<string, ReactiveClass> = {};
+	protected styleReactives: Record<string, ReactiveStyle> = {};
+	protected propReactives: Record<string, ReactiveProp> = {};
+
+	protected listeners: Record<string, EventListener[]> = {};
 
 	constructor (options: Record<string, any>) {
 		const ctor = this.constructor as typeof Component;
@@ -45,7 +49,7 @@ export default class Component {
 			const comment = root as Comment;
 			if (comment.data.startsWith("slot:")) {
 				const slotName = comment.data.slice("slot:".length);
-				this.slots.set(slotName, new Slot(comment));
+				this.slots[slotName] = new Slot(comment);
 				return;
 			}
 		} else if (root.nodeType === Node.ELEMENT_NODE) {
@@ -53,28 +57,28 @@ export default class Component {
 
 			for (const attr of Array.from(element.attributes)) {
 				if (attr.name.startsWith("data-ref")) {
-					this.refs.set(attr.value, element);
+					this.refs[attr.value] = element;
 				}
 
 				if (attr.name.startsWith("data-text")) {
-					this.textReactives.set(attr.value, new ReactiveText(element));
+					this.textReactives[attr.value] = new ReactiveText(element);
 				}
 
 				if (attr.name.startsWith("data-html")) {
-					this.htmlReactives.set(attr.value, new ReactiveHTML(element));
+					this.htmlReactives[attr.value] = new ReactiveHTML(element);
 				}
 
 				if (attr.name.startsWith("data-class")) {
-					this.classReactives.set(attr.value, new ReactiveClass(element));
+					this.classReactives[attr.value] = new ReactiveClass(element);
 				}
 
 				if (attr.name.startsWith("data-style")) {
-					this.styleReactives.set(attr.value, new ReactiveStyle(element));
+					this.styleReactives[attr.value] = new ReactiveStyle(element);
 				}
 
 				if (attr.name.startsWith("data-prop-")) {
 					const propName = attr.name.slice("data-prop-".length);
-					this.propReactives.set(attr.value, new ReactiveProp(element, propName));
+					this.propReactives[attr.value] = new ReactiveProp(element, propName);
 				}
 			}
 
@@ -87,64 +91,70 @@ export default class Component {
 	protected buildState (options: Record<string, any>) {
 		const base: Record<string, any> = {};
 
-		for (const key of this.textReactives.keys()) {
-			base[key] = this.textReactives.get(key)!.current();
+		for (const key in this.textReactives) {
+			base[key] = this.textReactives[key]!.current();
 		}
-		for (const key of this.htmlReactives.keys()) {
-			base[key] = this.htmlReactives.get(key)!.current();
+		for (const key in this.htmlReactives) {
+			base[key] = this.htmlReactives[key]!.current();
 		}
-		for (const key of this.classReactives.keys()) {
-			base[key] = this.classReactives.get(key)!.current();
+		for (const key in this.classReactives) {
+			base[key] = this.classReactives[key]!.current();
 		}
-		for (const key of this.styleReactives.keys()) {
-			base[key] = this.styleReactives.get(key)!.current();
+		for (const key in this.styleReactives) {
+			base[key] = this.styleReactives[key]!.current();
 		}
-		for (const key of this.propReactives.keys()) {
-			base[key] = this.propReactives.get(key)!.current();
+		for (const key in this.propReactives) {
+			base[key] = this.propReactives[key]!.current();
 		}
 
 		this.state = new ComponentState(base);
 
-		for (const key of this.textReactives.keys()) {
-			const reactive = this.textReactives.get(key);
+		for (const key in this.textReactives) {
+			const reactive = this.textReactives[key];
 			this.state.on(key, reactive!.update.bind(reactive));
 		}
-		for (const key of this.htmlReactives.keys()) {
-			const reactive = this.htmlReactives.get(key);
+		for (const key in this.htmlReactives) {
+			const reactive = this.htmlReactives[key];
 			this.state.on(key, reactive!.update.bind(reactive));
 		}
-		for (const key of this.classReactives.keys()) {
-			const reactive = this.classReactives.get(key);
+		for (const key in this.classReactives) {
+			const reactive = this.classReactives[key];
 			this.state.on(key, reactive!.update.bind(reactive));
 		}
-		for (const key of this.styleReactives.keys()) {
-			const reactive = this.styleReactives.get(key);
+		for (const key in this.styleReactives) {
+			const reactive = this.styleReactives[key];
 			this.state.on(key, reactive!.update.bind(reactive));
 		}
-		for (const key of this.propReactives.keys()) {
-			const reactive = this.propReactives.get(key);
+		for (const key in this.propReactives) {
+			const reactive = this.propReactives[key];
 			this.state.on(key, reactive!.update.bind(reactive));
 		}
 
 		this.state.update(options);
 	}
 
-	async mounted () {
-		await new Promise((resolve, reject) => {
-			this.setupAF = requestAnimationFrame(resolve);	
-		})
-		await new Promise((resolve, reject) => {
-			this.setupAF = requestAnimationFrame(resolve);	
-		})
-		this.setupAF = undefined;
+	mounted () {
+		this.setupAF = requestAnimationFrame(() => {
+			this.setupAF = requestAnimationFrame(() => {
+				this.transitionReady();
+				this.setupAF = undefined;
+			})
+		});
 
-		for (const [slotId, slot] of this.slots) {
-			await slot.mount();
+		for (const id in this.slots) {
+			this.slots[id].mount();
 		}
 	}
 
-	async unmounted () {
+	transitionReady () {
+		// place where you can start all css animations
+	}
+
+	unmounted () {
 		if (this.setupAF !== undefined) cancelAnimationFrame(this.setupAF as ReturnType<typeof requestAnimationFrame>);
+		for (const id in this.slots) {
+			this.slots[id].unmount();
+		}
 	}
 
 	update (diff: Record<string, any>) {
@@ -158,15 +168,51 @@ export default class Component {
 		this.mounted();
 	}
 
-	async unmount () {
-		for (const [id, slot] of this.slots) {
-			await slot.clear();
-		}
-		await this.unmounted();
+	unmount () {
+		this.unmounted();
 		this.parentElement?.removeChild(this.view);
 	}
 
 	get DOMNode (): HTMLElement {
 		return this.view as HTMLElement;
+	}
+
+	on (eventName: string, listener: EventListener) {
+		if (!this.listeners[eventName]) {
+			this.listeners[eventName] = [];
+		}
+
+		const arr = this.listeners[eventName] as EventListener[];
+
+		arr.push(listener);
+	}
+
+	off (eventName: string, listener: EventListener) {
+		const arr = this.listeners[eventName];
+
+		if (arr !== undefined) {
+			const lArr = arr as EventListener[];
+
+			const index = lArr.indexOf(listener);
+
+			if (index !== -1) {
+				lArr.splice(index, 1);
+				if (lArr.length === 0) {
+					delete this.listeners[eventName];
+				}
+			}
+		}
+	}
+
+	emit (eventName: string, payload: any) {
+		const arr = this.listeners[eventName];
+
+		if (arr !== undefined) {
+			const lArr = (arr as EventListener[]).slice();
+
+			for (const listener of lArr) {
+				listener(payload);
+			}
+		}
 	}
 }

@@ -10,7 +10,7 @@ export default class ReactiveHTML extends ReactiveElement {
 	}
 
 	update (newValue: any, oldValue: any) {
-		this.currentHTML = newValue.toString()
+		this.currentHTML = newValue ? newValue.toString() : "";
 		this.element.innerHTML = this.currentHTML;
 	}
 

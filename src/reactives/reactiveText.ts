@@ -10,7 +10,7 @@ export default class ReactiveText extends ReactiveElement {
 	}
 
 	update (newValue: any, oldValue: any) {
-		this.currentText = newValue.toString();
+		this.currentText = newValue ? newValue.toString() : "";
 		this.element.innerText = this.currentText;
 	}
 

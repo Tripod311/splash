@@ -17,7 +17,7 @@ export default class ReactiveProp extends ReactiveElement {
 	}
 
 	update (newValue: any, oldValue: any) {
-		if (newValue === null) {
+		if (newValue === null || newValue === undefined) {
 			this.currentValue = null;
 
 			this.element.removeAttribute(this.propName);
