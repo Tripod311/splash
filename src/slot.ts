@@ -57,7 +57,11 @@ export default class Slot {
 
 	push (component: Component) {
 		this.content.push(component);
-		this.content[this.content.length - 2]!.DOMNode.after(component.DOMNode);
+		if (this.content.length > 1) {
+			this.content[this.content.length - 2]!.DOMNode.after(component.DOMNode);
+		} else {
+			this.anchor.after(component.DOMNode);
+		}
 		if (this.mounted) {
 			component.mounted();
 		}
@@ -76,7 +80,11 @@ export default class Slot {
 
 	unshift (component: Component) {
 		this.content.unshift(component);
-		this.content[0]!.DOMNode.before(component.DOMNode);
+		if (this.content.length > 1) {
+			this.content[0]!.DOMNode.before(component.DOMNode);
+		} else {
+			this.anchor.after(component.DOMNode);
+		}
 		if (this.mounted) {
 			component.mounted();
 		}
