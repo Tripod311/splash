@@ -1,4 +1,4 @@
-import TemplateCache from "./templateCache.js"
+import { TemplateCache } from "./templateCache.js"
 import { ComponentState } from "./componentState.js"
 import ReactiveText from "./reactives/reactiveText.js"
 import ReactiveHTML from "./reactives/reactiveHTML.js"
@@ -56,23 +56,23 @@ export default class Component {
 			const element = root as HTMLElement;
 
 			for (const attr of Array.from(element.attributes)) {
-				if (attr.name.startsWith("data-ref")) {
+				if (attr.name === "data-ref") {
 					this.refs[attr.value] = element;
 				}
 
-				if (attr.name.startsWith("data-text")) {
+				if (attr.name === "data-text") {
 					this.textReactives[attr.value] = new ReactiveText(element);
 				}
 
-				if (attr.name.startsWith("data-html")) {
+				if (attr.name === "data-html") {
 					this.htmlReactives[attr.value] = new ReactiveHTML(element);
 				}
 
-				if (attr.name.startsWith("data-class")) {
+				if (attr.name === "data-class") {
 					this.classReactives[attr.value] = new ReactiveClass(element);
 				}
 
-				if (attr.name.startsWith("data-style")) {
+				if (attr.name === "data-style") {
 					this.styleReactives[attr.value] = new ReactiveStyle(element);
 				}
 
