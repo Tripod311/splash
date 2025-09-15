@@ -168,7 +168,49 @@ this.slots["mySlot"].setContent([child]);
 
 ---
 
-### 3. Mounting & Unmounting
+### 3. Drops
+
+Drops are lightweight HTML snippets stored in the `TemplateCache`.  
+They are not components: no state, no lifecycle, no reactivity.  
+Instead, they allow you to register small reusable pieces of HTML with the same directives (`data-ref`, `data-text`, `data-html`, `data-class`, `data-style`, `data-prop-*`).  
+
+A drop can be **instantiated** at any moment, filled with values, and mounted into the DOM as a regular element.  
+
+**Example template registration:**
+```ts
+TemplateCache.registerDrop("chatMessage", `
+  <div class="msg">
+    <span data-ref="author" data-text="author"></span>
+    <p data-ref="text" data-html="text"></p>
+  </div>
+`);
+```
+
+**Creating a drop**
+```ts
+const drop = TemplateCache.createDrop("chatMessage", {
+  author: "Alice",
+  text: "<b>Hello!</b>"
+});
+
+// Access refs
+console.log(drop.refs.author.innerText); // "Alice"
+
+// Insert into DOM
+document.body.appendChild(drop.node);
+```
+
+**Drop interface**
+```ts
+export interface Drop {
+  node: Node;                         // the root DOM node
+  refs: Record<string, HTMLElement>;  // all elements with data-ref
+}
+```
+
+---
+
+### 4. Mounting & Unmounting
 
 To place a component on the page you can use the `mount` method:
 
