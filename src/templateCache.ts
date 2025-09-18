@@ -34,7 +34,7 @@ export class TemplateCache {
 		TemplateCache.drops[dropName] = compiled;
 	}
 
-	static createDrop (dropName: string, fill?: Record<string, any>): Drop | null {
+	static createDrop (dropName: string, fill: Record<string, any> = {}): Drop | null {
 		if (TemplateCache.drops[dropName] === undefined) return null;
 
 		const result = {

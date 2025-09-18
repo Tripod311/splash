@@ -188,6 +188,7 @@ TemplateCache.registerDrop("chatMessage", `
 
 **Creating a drop**
 ```ts
+// second parameter is optional, use it when you want to fill drop with some content.
 const drop = TemplateCache.createDrop("chatMessage", {
   author: "Alice",
   text: "<b>Hello!</b>"
@@ -207,6 +208,29 @@ export interface Drop {
   refs: Record<string, HTMLElement>;  // all elements with data-ref
 }
 ```
+
+### 4. Generic Components
+
+Generic components are a middle ground between **drops** and **regular components**.  
+They are useful when you need something that behaves like a component (can be mounted into a slot, updated, unmounted), but is too simple to justify creating a separate `.ts` + `.html` pair.  
+
+A common use case is when you want to render either a real component or a simple piece of UI (like an error message) into the same slot. A drop alone cannot be mounted into a slot, but a generic component can wrap it.
+
+**Example:**
+```ts
+const result = await someAsyncRequest();
+
+if (!result.error) {
+  this.slots.content.push(new MyRegularComponent({}));
+} else {
+  // Wrap a drop (or any HTML node) into a generic component
+  const errorDrop = TemplateCache.createDrop("errorMessage");
+  this.slots.content.push(Component.generic({ text: result.details }, errorDrop.node));
+}
+```
+
+In this way, you can take drops or any ad-hoc HTML node created in code and treat it as a real component.
+This keeps your slot API consistent — you always mount components, whether they are full, generic, or lightweight wrappers around static HTML.
 
 ---
 
