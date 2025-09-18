@@ -29,15 +29,19 @@ export default class Component {
 
 	protected listeners: Record<string, EventListener[]> = {};
 
-	constructor (options: Record<string, any>) {
+	constructor (options: Record<string, any>, template?: HTMLElement) {
 		const ctor = this.constructor as typeof Component;
 
-		const template = TemplateCache.getTemplate(ctor.componentName);
+		if (template === undefined) {
+			const template = TemplateCache.getTemplate(ctor.componentName);
 
-		if (template === null) {
-			this.view = TemplateCache.compileTemplate(ctor.componentName, ctor.template);
+			if (template === null) {
+				this.view = TemplateCache.compileTemplate(ctor.componentName, ctor.template);
+			} else {
+				this.view = template as Node;
+			}
 		} else {
-			this.view = template as Node;
+			this.view = template;
 		}
 
 		this.build(this.view);
@@ -214,5 +218,9 @@ export default class Component {
 				listener(payload);
 			}
 		}
+	}
+
+	static generic (options: Record<string, any>, template: HTMLElement): Component {
+		return new Component(options, template);
 	}
 }
