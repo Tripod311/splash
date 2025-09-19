@@ -9,22 +9,31 @@ export default class ReactiveProp extends ReactiveElement {
 
 		this.propName = propName;
 
-		if (element.hasAttribute(propName)) {
-			this.currentValue = element.getAttribute(this.propName);
+		if (this.propName === "value") {
+			this.currentValue = (element as any).value;
 		} else {
-			this.currentValue = null;
+			if (element.hasAttribute(propName)) {
+				this.currentValue = element.getAttribute(this.propName);
+			} else {
+				this.currentValue = null;
+			}
 		}
 	}
 
 	update (newValue: any, oldValue: any) {
-		if (newValue === null || newValue === undefined) {
-			this.currentValue = null;
-
-			this.element.removeAttribute(this.propName);
+		if (this.propName === "value") {
+			(this.element as any).value = newValue;
+			this.currentValue = (this.element as any).value;
 		} else {
-			this.currentValue = newValue.toString();
+			if (newValue === null || newValue === undefined) {
+				this.currentValue = null;
 
-			this.element.setAttribute(this.propName, this.currentValue as string);
+				this.element.removeAttribute(this.propName);
+			} else {
+				this.currentValue = newValue.toString();
+
+				this.element.setAttribute(this.propName, this.currentValue as string);
+			}
 		}
 	}
 
