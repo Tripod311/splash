@@ -9,10 +9,10 @@ export default class Slot {
 		this.anchor = anchor;
 	}
 
-	setContent (content: Component | Component[]) {
+	setContent (content: Component[]) {
 		this.clear();
 
-		this.content = content as Component[];
+		this.content = content.slice();
 
 		let lastNode: ChildNode = this.anchor;
 
