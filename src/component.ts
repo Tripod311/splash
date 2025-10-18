@@ -21,11 +21,11 @@ export default class Component {
 	protected refs: Record<string, HTMLElement> = {};
 	protected slots: Record<string, Slot> = {};
 
-	protected textReactives: Record<string, ReactiveText> = {};
-	protected htmlReactives: Record<string, ReactiveHTML> = {};
-	protected classReactives: Record<string, ReactiveClass> = {};
-	protected styleReactives: Record<string, ReactiveStyle> = {};
-	protected propReactives: Record<string, ReactiveProp> = {};
+	protected textReactives: Record<string, ReactiveText[]> = {};
+	protected htmlReactives: Record<string, ReactiveHTML[]> = {};
+	protected classReactives: Record<string, ReactiveClass[]> = {};
+	protected styleReactives: Record<string, ReactiveStyle[]> = {};
+	protected propReactives: Record<string, ReactiveProp[]> = {};
 
 	protected listeners: Record<string, EventListener[]> = {};
 
@@ -65,24 +65,29 @@ export default class Component {
 				}
 
 				if (attr.name === "data-text") {
-					this.textReactives[attr.value] = new ReactiveText(element);
+					if (this.textReactives[attr.value] === undefined) this.textReactives[attr.value] = [];
+					this.textReactives[attr.value].push(new ReactiveText(element));
 				}
 
 				if (attr.name === "data-html") {
-					this.htmlReactives[attr.value] = new ReactiveHTML(element);
+					if (this.htmlReactives[attr.value] === undefined) this.htmlReactives[attr.value] = [];
+					this.htmlReactives[attr.value].push(new ReactiveHTML(element));
 				}
 
 				if (attr.name === "data-class") {
-					this.classReactives[attr.value] = new ReactiveClass(element);
+					if (this.classReactives[attr.value] === undefined) this.classReactives[attr.value] = [];
+					this.classReactives[attr.value].push(new ReactiveClass(element));
 				}
 
 				if (attr.name === "data-style") {
-					this.styleReactives[attr.value] = new ReactiveStyle(element);
+					if (this.styleReactives[attr.value] === undefined) this.styleReactives[attr.value] = [];
+					this.styleReactives[attr.value].push(new ReactiveStyle(element));
 				}
 
 				if (attr.name.startsWith("data-prop-")) {
 					const propName = attr.name.slice("data-prop-".length);
-					this.propReactives[attr.value] = new ReactiveProp(element, propName);
+					if (this.propReactives[attr.value] === undefined) this.propReactives[attr.value] = [];
+					this.propReactives[attr.value].push(new ReactiveProp(element, propName));
 				}
 			}
 
@@ -96,42 +101,52 @@ export default class Component {
 		const base: Record<string, any> = {};
 
 		for (const key in this.textReactives) {
-			base[key] = this.textReactives[key]!.current();
+			base[key] = this.textReactives[key][0]!.current();
 		}
 		for (const key in this.htmlReactives) {
-			base[key] = this.htmlReactives[key]!.current();
+			base[key] = this.htmlReactives[key][0]!.current();
 		}
 		for (const key in this.classReactives) {
-			base[key] = this.classReactives[key]!.current();
+			base[key] = this.classReactives[key][0]!.current();
 		}
 		for (const key in this.styleReactives) {
-			base[key] = this.styleReactives[key]!.current();
+			base[key] = this.styleReactives[key][0]!.current();
 		}
 		for (const key in this.propReactives) {
-			base[key] = this.propReactives[key]!.current();
+			base[key] = this.propReactives[key][0]!.current();
 		}
 
 		this.state = new ComponentState(base);
 
 		for (const key in this.textReactives) {
-			const reactive = this.textReactives[key];
-			this.state.on(key, reactive!.update.bind(reactive));
+			const reactives = this.textReactives[key];
+			for (const reactive of reactives) {
+				this.state.on(key, reactive!.update.bind(reactive));
+			}
 		}
 		for (const key in this.htmlReactives) {
-			const reactive = this.htmlReactives[key];
-			this.state.on(key, reactive!.update.bind(reactive));
+			const reactives = this.htmlReactives[key];
+			for (const reactive of reactives) {
+				this.state.on(key, reactive!.update.bind(reactive));
+			}
 		}
 		for (const key in this.classReactives) {
-			const reactive = this.classReactives[key];
-			this.state.on(key, reactive!.update.bind(reactive));
+			const reactives = this.classReactives[key];
+			for (const reactive of reactives) {
+				this.state.on(key, reactive!.update.bind(reactive));
+			}
 		}
 		for (const key in this.styleReactives) {
-			const reactive = this.styleReactives[key];
-			this.state.on(key, reactive!.update.bind(reactive));
+			const reactives = this.styleReactives[key];
+			for (const reactive of reactives) {
+				this.state.on(key, reactive!.update.bind(reactive));
+			}
 		}
 		for (const key in this.propReactives) {
-			const reactive = this.propReactives[key];
-			this.state.on(key, reactive!.update.bind(reactive));
+			const reactives = this.propReactives[key];
+			for (const reactive of reactives) {
+				this.state.on(key, reactive!.update.bind(reactive));
+			}
 		}
 
 		this.state.update(options);
