@@ -80,8 +80,8 @@ export default class Slot {
 
 	unshift (component: Component) {
 		this.content.unshift(component);
-		if (this.content.length >= 1) {
-			this.content[0]!.DOMNode.before(component.DOMNode);
+		if (this.content.length > 1) {
+			this.content[1]!.DOMNode.before(component.DOMNode);
 		} else {
 			this.anchor.after(component.DOMNode);
 		}
