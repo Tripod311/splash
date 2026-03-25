@@ -57,7 +57,7 @@ export default class Slot {
 
 	push (component: Component) {
 		this.content.push(component);
-		if (this.content.length > 1) {
+		if (this.content.length >= 1) {
 			this.content[this.content.length - 2]!.DOMNode.after(component.DOMNode);
 		} else {
 			this.anchor.after(component.DOMNode);
@@ -80,7 +80,7 @@ export default class Slot {
 
 	unshift (component: Component) {
 		this.content.unshift(component);
-		if (this.content.length > 1) {
+		if (this.content.length >= 1) {
 			this.content[0]!.DOMNode.before(component.DOMNode);
 		} else {
 			this.anchor.after(component.DOMNode);
