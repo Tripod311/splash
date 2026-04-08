@@ -37,7 +37,7 @@ Also it means that all the data passed from a parent component to its children c
 4. **Lifecycle hooks**  
    - `mounted()` — called after insertion into the DOM.  
    - `unmounted()` — called when removed.  
-   - `transitionEntry()` — called after mounting + rendering (for CSS animations).  
+   - `transitionReady()` — called after mounting + rendering (for CSS animations).  
 
 5. **Single source of truth: state**  
    - Each component receives `options: Record<string, any>`.  
@@ -113,7 +113,7 @@ export default class MyComponent extends Component {
     super.mounted();
   }
 
-  transitionEntry () {
+  transitionReady () {
     // Called after mounted + rendered → safe for CSS animations
   }
 
@@ -301,7 +301,7 @@ this.state.getProp("reactive-var-name")
 ## Example Scenarios
 
 - **Form:** use `data-ref` for `<input>` and plain native events. No `v-model` or controlled/uncontrolled hacks.  
-- **Mount animations:** use `transitionEntry()` for CSS transitions.  
-- **Conditional rendering:** mount/unmount via `data-slot`, no `v-if` or diffing logic.  
+- **Mount animations:** use `transitionReady()` for CSS transitions.  
+- **Conditional rendering:** mount/unmount via `slots`, no phantom nodes.
 
 ---
