@@ -1,88 +1,88 @@
 # Splash
 
-Splash is a zero-dependency minimalistic UI framework that tries to achieve JSX/Vue template level of comfort without a virtual DOM.
+Splash is a small, zero-dependency UI library built around direct DOM rendering. It aims to provide a component-oriented development experience without introducing a virtual DOM or a separate rendering tree.
 
-In Splash every component is an extended DOM node with all the consequences — you can add, remove or insert them in regular DOM elements.  
-That’s why it’s called **Splash** — just splash your component anywhere on the page and it will work according to its inner logic.
+Each Splash component owns a single root DOM element. Components can be mounted into slots or regular DOM containers, moved between containers, and accessed through their underlying DOM nodes when direct control is useful.
 
-Splash does not separate props and state variables like other frameworks, primarily because it focuses on rendering the view only.  
-That means a clear split between **component view** and **component logic**.  
-Also it means that all the data passed from a parent component to its children can affect child views immediately — you just need to take it into account.
+Splash uses a deliberately compact model: component inputs and local values live in one state object, while templates describe how selected state fields are reflected in the DOM. This approach is designed for small applications and interfaces where a lightweight abstraction and explicit DOM behavior are more useful than a larger framework ecosystem.
 
----
-
-## Core Ideas
-
-1. **Component = one DOM element**  
-   - No ambiguities, no phantom nodes.  
-   - Conditional rendering is solved inside the component.  
-   - If you need a hybrid case — use `ref` and manage it manually.  
-
-2. **Direct DOM**  
-   - No virtual tree.  
-   - Everything is stored and updated directly in the DOM.  
-   - The browser already optimizes repaints — no need for batching.  
-
-3. **Minimal directives**  
-   Just six built-in directives:  
-   - `data-ref` — reference to a specific element.  
-   - `data-slot` — mount point for other components.  
-   - `data-text` — reactive text.  
-   - `data-html` — dynamic HTML.  
-   - `data-class` — reactive classes.  
-   - `data-style` — reactive styles.  
-   Additionally:  
-   - `data-prop-*` — reactive binding to any attribute (src, href, etc.).  
-
-4. **Lifecycle hooks**  
-   - `mounted()` — called after insertion into the DOM.  
-   - `unmounted()` — called when removed.  
-   - `transitionReady()` — called after mounting + rendering (for CSS animations).  
-
-5. **Single source of truth: state**  
-   - Each component receives `options: Record<string, any>`.  
-   - These turn into the component’s `state`.  
-   - No props vs. state confusion — only a single object.  
-   - State updates trigger view updates exactly where needed.  
-
-6. **Errors are not hidden**  
-   - Splash is not a nanny.  
-   - If you create an infinite update loop, that’s your bug.  
-   - Architectural mistakes are visible immediately.  
+Splash is also a practical exploration of component lifecycle, selective reactivity, template caching, and direct DOM updates. It is not intended as a drop-in replacement for established production frameworks; it represents a different set of trade-offs tailored to the author's own projects.
 
 ---
 
-## Philosophy
+## Core ideas
 
-- **No extra layers.** DOM already does everything, no need to reinvent it.  
-- **Simplicity over magic.** Minimal directives, maximum predictability.  
-- **Trust the developer.** If you want to work directly with DOM — go ahead.  
-- **Efficiency is natural.** Browsers already batch repaints, no extra abstraction needed.  
+### One root element per component
+
+Every component owns one root DOM element. This gives the component a clear position in the document and allows it to be mounted, moved, or removed as a single unit.
+
+Conditional content is normally handled through slots. When lower-level control is needed, elements can also be accessed through refs or the component's root node.
+
+### Direct DOM rendering
+
+Splash stores and updates the rendered view directly in the DOM. It does not maintain a virtual representation or perform reconciliation.
+
+Reactive directives update only the elements bound to the state field that changed. Splash does not add its own scheduling layer, so update timing remains explicit and follows normal browser DOM behavior.
+
+### A small directive set
+
+Splash provides a limited set of template directives:
+
+- `data-ref` — stores a reference to an element.
+- `data-slot` — declares a mount point for child components.
+- `data-text` — binds a state value to `innerText`.
+- `data-html` — binds a state value to `innerHTML`.
+- `data-class` — binds an array of CSS classes.
+- `data-style` — binds an object of inline styles.
+- `data-prop-*` — binds a value to an HTML attribute such as `src` or `href`.
+
+Directive values are identifiers, not JavaScript expressions. Application logic remains in the component class.
+
+### Component lifecycle
+
+Components can respond to three lifecycle stages:
+
+- `mounted()` — called after the component is inserted into the DOM.
+- `transitionReady()` — called after mounting and initial rendering, allowing CSS transitions to begin.
+- `unmounted()` — called when the component is unmounted.
+
+### One component state object
+
+Each component receives an `options: Record<string, any>` object, which is used to initialize its state. Splash does not create separate props and local-state systems.
+
+State fields can be updated individually or as a group. Only directives bound to changed fields are updated.
+
+### Explicit behavior
+
+Splash keeps its update model intentionally small. State changes, DOM access, and component relationships remain visible in application code. The library provides lifecycle and rendering primitives while leaving broader architecture decisions to the application.
 
 ---
 
 ## API
 
-### 1. Component
+### 1. Components
 
-Each component is a visible entity. You may think of it as an extension of a DOM node. Each component exposes its root DOM element via the component.DOMNode property, so you can directly manipulate it if needed.
-A component must have a **template** — plain HTML with several helper directives.
+A component combines a template, a state object, lifecycle hooks, and one root DOM element. The root is available through `component.DOMNode` when direct DOM access is required.
 
-**Example template (myComponent.html):**
+A component template is regular HTML with optional Splash directives.
+
+**Example template (`myComponent.html`):**
+
 ```html
 <div data-ref="container">
   <h1 data-text="header-text"></h1>
   <p>Static paragraph</p>
   <!--slot:conditionalPart-->
-  <p data-style="conclusion-style">This is finishing paragraph</p>
+  <p data-style="conclusion-style">This is the final paragraph.</p>
 </div>
 ```
 
-**Component definition (myComponent.ts):**
+**Component definition (`myComponent.ts`):**
+
 ```ts
-import { Component } from "@tripod311/splash"
-import View from "./myComponent.html?raw"
-import ChildComponent from "./childComponent.js"
+import { Component } from "@tripod311/splash";
+import View from "./myComponent.html?raw";
+import ChildComponent from "./childComponent.js";
 
 export default class MyComponent extends Component {
   private static componentName: string = "MyComponent";
@@ -91,22 +91,24 @@ export default class MyComponent extends Component {
   constructor (options: Record<string, any>) {
     super(options);
 
-    // Initialize state
+    // Update one state field.
     this.state.setProp("header-text", "My component title");
 
-    // Subscribe to state changes
+    // Observe a state field.
     this.state.on("src", (newValue: any, oldValue: any) => {
-      /* inner logic */
+      // Component-specific logic.
     });
 
-    // Batch update
+    // Update several fields together.
     this.state.update({
       diffVar1: "someValue",
       diffVar2: "someOtherValue"
     });
 
-    // Fill slots
-    this.slots["conditionalPart"].push(new ChildComponent({ var1: 1 }));
+    // Add a child component to a slot.
+    this.slots.conditionalPart.push(
+      new ChildComponent({ var1: 1 })
+    );
   }
 
   mounted () {
@@ -114,7 +116,7 @@ export default class MyComponent extends Component {
   }
 
   transitionReady () {
-    // Called after mounted + rendered → safe for CSS animations
+    // The component is mounted and ready for CSS transitions.
   }
 
   unmounted () {
@@ -123,60 +125,63 @@ export default class MyComponent extends Component {
 }
 ```
 
-**Events:**
+Each component class must have a distinct `componentName`. Splash uses this name as the key for its shared template cache.
+
+#### Component events
+
+Components can emit and subscribe to application-level events:
+
 ```ts
-// Child → Parent
+// Child component
 this.emit("click", { some: "payload" });
 
-// Parent listens
+// Parent component
 childComponent.on("click", payload => {
   console.log(payload);
 });
 ```
 
-**Updating child from parent:**
+#### Updating a child component
+
 ```ts
-childComponent.update({ color: "newColor" });
+childComponent.update({
+  color: "newColor"
+});
 ```
-
-⚠️ Note: Each component must have a distinct `componentName`.  
-Splash caches and shares templates between components with the same names.
-
----
 
 ### 2. Slots
 
-Slots manage child components declaratively. They behave like arrays with lifecycle tracking.
+Slots are ordered collections of child components associated with mount points in a template. They manage insertion, removal, and the corresponding component lifecycle calls.
 
-**Example:**
 ```ts
-const child = new ChildComponent({ ...state });
-this.slots["mySlot"].setContent([child]);
+const child = new ChildComponent({
+  title: "Child component"
+});
+
+this.slots.mySlot.setContent([child]);
 ```
 
-**API:**
-- `setContent(Component[])` — replace slot contents.  
-- `clear(): Component[]` — unmount all and return them.  
-- `push(c: Component)` — append component.  
-- `pop(): Component | undefined` — remove last.  
-- `unshift(c: Component)` — prepend component.  
-- `shift(): Component | undefined` — remove first.  
-- `inject(pos: number, c: Component)` — insert at position.  
-- `remove(pos: number): Component | undefined` — remove at position.  
-- `getByIndex(index: number): Component | undefined` — access without unmounting.  
-- `length: number` — number of components in slot.  
+Slot API:
 
----
+- `setContent(components: Component[])` — replaces the current contents.
+- `clear(): Component[]` — unmounts and returns all components.
+- `push(component: Component)` — appends a component.
+- `pop(): Component | undefined` — removes the last component.
+- `unshift(component: Component)` — prepends a component.
+- `shift(): Component | undefined` — removes the first component.
+- `inject(position: number, component: Component)` — inserts a component at a specified position.
+- `remove(position: number): Component | undefined` — removes a component at a specified position.
+- `getByIndex(index: number): Component | undefined` — returns a component without removing it.
+- `length: number` — returns the number of components in the slot.
 
 ### 3. Drops
 
-Drops are lightweight HTML snippets stored in the `TemplateCache`.  
-They are not components: no state, no lifecycle, no reactivity.  
-Instead, they allow you to register small reusable pieces of HTML with the same directives (`data-ref`, `data-text`, `data-html`, `data-class`, `data-style`, `data-prop-*`).  
+Drops are lightweight reusable HTML fragments stored in `TemplateCache`. They support the same element-binding directives as component templates but do not have component state, events, or lifecycle hooks.
 
-A drop can be **instantiated** at any moment, filled with values, and mounted into the DOM as a regular element.  
+A drop can be created, populated with initial values, and inserted into the DOM as a regular node.
 
-**Example template registration:**
+#### Registering a drop
+
 ```ts
 TemplateCache.registerDrop("chatMessage", `
   <div class="msg">
@@ -186,122 +191,146 @@ TemplateCache.registerDrop("chatMessage", `
 `);
 ```
 
-**Creating a drop**
+#### Creating a drop
+
+The second argument is optional and can be used to populate the drop's directives:
+
 ```ts
-// second parameter is optional, use it when you want to fill drop with some content.
 const drop = TemplateCache.createDrop("chatMessage", {
   author: "Alice",
   text: "<b>Hello!</b>"
 });
 
-// Access refs
-console.log(drop.refs.author.innerText); // "Alice"
+console.log(drop.refs.author.innerText);
 
-// Insert into DOM
 document.body.appendChild(drop.node);
 ```
 
-**Drop interface**
+Drop interface:
+
 ```ts
 export interface Drop {
-  node: Node;                         // the root DOM node
-  refs: Record<string, HTMLElement>;  // all elements with data-ref
+  node: Node;
+  refs: Record<string, HTMLElement>;
 }
 ```
 
-### 4. Generic Components
+Values passed to `data-html` are assigned through `innerHTML`. Do not use unsanitized user-provided content with this directive.
 
-Generic components are a middle ground between **drops** and **regular components**.  
-They are useful when you need something that behaves like a component (can be mounted into a slot, updated, unmounted), but is too simple to justify creating a separate `.ts` + `.html` pair.  
+### 4. Generic components
 
-A common use case is when you want to render either a real component or a simple piece of UI (like an error message) into the same slot. A drop alone cannot be mounted into a slot, but a generic component can wrap it.
+Generic components provide component lifecycle and slot compatibility without requiring a dedicated component class and template file.
 
-**Example:**
+They are useful when a slot may contain either a regular component or a small piece of interface such as an empty-state or error message.
+
 ```ts
 const result = await someAsyncRequest();
 
 if (!result.error) {
-  this.slots.content.push(new MyRegularComponent({}));
+  this.slots.content.push(
+    new MyRegularComponent({})
+  );
 } else {
-  // Wrap a drop (or any HTML node) into a generic component
   const errorDrop = TemplateCache.createDrop("errorMessage");
-  this.slots.content.push(Component.generic({ text: result.details }, errorDrop.node));
+
+  this.slots.content.push(
+    Component.generic(
+      { text: result.details },
+      errorDrop.node
+    )
+  );
 }
 ```
 
-In this way, you can take drops or any ad-hoc HTML node created in code and treat it as a real component.
-This keeps your slot API consistent — you always mount components, whether they are full, generic, or lightweight wrappers around static HTML.
+This keeps the slot API consistent: every slot contains components, while simple DOM fragments can be wrapped only when lifecycle-aware mounting is needed.
 
----
+### 5. Mounting and unmounting
 
-### 4. Mounting & Unmounting
-
-To place a component on the page you can use the `mount` method:
+Use `mount()` to append a component to a DOM container:
 
 ```ts
 import MyComponent from "./MyComponent.js";
 
-const app = new MyComponent({ title: "Hello Splash!" });
+const app = new MyComponent({
+  title: "Hello Splash!"
+});
+
 app.mount(document.body);
 ```
 
-This will append the component’s DOM node into the provided container and call its `mounted()` lifecycle hook.  
+Mounting inserts the component's root node and calls its `mounted()` lifecycle hook.
 
-To remove a component from the page, call:
+Use `unmount()` to remove it:
 
 ```ts
 app.unmount();
 ```
 
-This will remove the DOM node and call its `unmounted()` lifecycle hook.
-
-⚠️ **Important:**  
-Unmounting a component does **not** destroy its state or DOM nodes.  
-The component can be mounted again into another container without losing any data:
+Unmounting does not destroy the component's state or DOM tree. The same instance can later be mounted into another container:
 
 ```ts
-// move component from one place to another
 app.unmount();
-app.mount(document.getElementById("new-container")!);
+app.mount(
+  document.getElementById("new-container")!
+);
 ```
 
-This behavior allows implementing modals, window managers, tab systems and other features where components may be parked and reinserted freely.
+This behavior is useful for interfaces such as modal systems, tabs, movable panels, and window managers.
+
+When lifecycle hooks matter, prefer `mount()`, `unmount()`, and slots over manipulating `component.DOMNode` directly.
 
 ---
 
-## Template Directives
+## Template directives
 
-All directives work with **string-based identifiers**. They are not evaluated — only bound.  
-Initial HTML values are used to initialize state.
+Directive values are string identifiers. Splash binds them to state fields but does not evaluate them as expressions.
 
-- `data-ref` — reference in `this.refs`.  
-- `data-text` — reactive `innerText`.  
-- `data-html` — reactive `innerHTML`.  
-- `data-class` — array of strings for CSS classes.  
-- `data-style` — object `{ [prop]: value }` for styles.  
-- `data-prop-*` — any other attribute (e.g. `data-prop-src` for `<img>`).  
+- `data-ref` — exposes an element through `this.refs`.
+- `data-text` — assigns a value through `innerText`.
+- `data-html` — assigns a value through `innerHTML`.
+- `data-class` — applies an array of CSS class names.
+- `data-style` — applies an object in the form `{ [property]: value }`.
+- `data-prop-*` — binds another HTML attribute, such as `data-prop-src` or `data-prop-href`.
 
-Current reactive values can be accessed via:
+Initial directive values declared in the template are used to initialize the corresponding state fields.
+
+The current value of a reactive field can be read with:
+
 ```ts
-this.state.getProp("reactive-var-name")
+this.state.getProp("reactive-variable-name");
 ```
 
 ---
 
-## How it Differs from React/Vue
+## Design choices
 
-- No virtual DOM → simpler and faster.  
-- No props/state/context zoo → just `state`.  
-- No hidden batching or reconciliation → updates are explicit.  
-- No “child restrictions” → developers freely manipulate the DOM.  
-- Tiny core, only a few kilobytes.  
+Splash differs from virtual-DOM and compiler-based UI frameworks in several deliberate ways:
 
----
+- The DOM is the only rendered tree.
+- Each component corresponds to one root DOM element.
+- Reactivity is opt-in through template directives.
+- Component inputs and local values share one state interface.
+- DOM access remains available when an application needs it.
+- Update scheduling and broader application architecture remain under developer control.
 
-## Example Scenarios
-
-- **Form:** use `data-ref` for `<input>` and plain native events. No `v-model` or controlled/uncontrolled hacks.  
-- **Mount animations:** use `transitionReady()` for CSS transitions.  
-- **Conditional rendering:** mount/unmount via `slots`, no phantom nodes.
+These choices reduce the amount of machinery between component code and the browser, while placing more responsibility on the application to manage update patterns and DOM interactions carefully.
 
 ---
+
+## Example scenarios
+
+### Forms
+
+Use `data-ref` to access native form controls and attach regular DOM event listeners. Splash does not introduce a separate form model.
+
+### Mount transitions
+
+Use `transitionReady()` to apply classes or styles after the component has been mounted and initially rendered.
+
+### Conditional content
+
+Use slots to add, replace, or remove child components while preserving their lifecycle behavior.
+
+### Direct DOM integration
+
+Use refs or `component.DOMNode` when integrating browser APIs or third-party code that expects regular DOM elements.
